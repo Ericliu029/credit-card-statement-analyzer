@@ -1,49 +1,49 @@
-# Windows 与 macOS 封装方案
+# Windows and macOS Packaging Plan
 
-## 共享部分
+## Shared Components
 
-以下内容在两个平台完全共用：
+The following components are shared across both platforms:
 
-- PDF 解析器、分类规则和分析逻辑。
-- Ollama API 地址与 JSON Schema。
-- 模型标签 `llama3.2:3b`。
-- 提示词版本、置信度阈值和缓存格式。
-- Streamlit 页面代码。
+- PDF parsers, categorization rules, and analysis logic.
+- Ollama API address and JSON Schema.
+- The `llama3.2:3b` model tag.
+- Prompt version, confidence threshold, and cache format.
+- Streamlit interface code.
 
-应用代码不得写死 Windows 用户目录、NVIDIA 路径或 macOS 应用目录。本地模型通过 `http://localhost:11434` 访问，因此 Windows 的 NVIDIA GPU 与 macOS 的 Apple Silicon/Metal 差异由 Ollama 处理。
+Application code must not hard-code a Windows user directory, an NVIDIA path, or a macOS application directory. The local model is accessed through `http://localhost:11434`, so Ollama handles the differences between an NVIDIA GPU on Windows and Apple Silicon/Metal on macOS.
 
-## 平台安装入口
+## Platform Installation Entry Points
 
-- Windows：`scripts/setup_local_llm_windows.ps1`
-- macOS：`scripts/setup_local_llm_macos.sh`
-- Windows 应用启动：项目根目录的批处理启动器。
-- macOS 应用启动：`scripts/run_app_macos.command`
+- Windows: `scripts/setup_local_llm_windows.ps1`
+- macOS: `scripts/setup_local_llm_macos.sh`
+- Windows application launch: the batch launcher in the project root.
+- macOS application launch: `scripts/run_app_macos.command`
 
-macOS 文件首次使用时可能需要执行：
+The macOS files may need executable permission before their first use:
 
 ```bash
 chmod +x scripts/setup_local_llm_macos.sh scripts/run_app_macos.command
 ```
 
-## 最终发行包
+## Final Distributions
 
-最终应生成两个发行物，而不是一个跨系统二进制文件：
+The project should produce two platform-specific distributions rather than one cross-platform binary:
 
-- Windows x64 安装包。
-- macOS Apple Silicon 安装包；如需支持 Intel Mac，应单独验证或生成 universal2 构建。
+- A Windows x64 package.
+- A macOS Apple Silicon package. Intel Mac support should be validated separately or provided through a universal2 build.
 
-PyInstaller 的输出与构建时操作系统和 Python 版本相关，因此 Windows 包必须在 Windows 构建，macOS 包必须在 macOS 构建。两个构建可以使用同一代码仓库和自动化测试。
+PyInstaller output depends on the build operating system and Python version. A Windows package must therefore be built on Windows, and a macOS package must be built on macOS. Both builds can use the same repository and automated test suite.
 
-参考：https://pyinstaller.org/en/stable/operating-mode.html
+Reference: https://pyinstaller.org/en/stable/operating-mode.html
 
-Ollama 与约 2GB 模型建议作为首次运行组件安装，而不是直接塞入主应用包。这样可以独立更新模型、减少应用更新体积，并允许用户关闭或卸载 Local AI 而不影响规则分类功能。
+Ollama and the approximately 2 GB model should be installed as first-run components instead of being embedded in the main application package. This allows the model to be updated independently, reduces application update size, and lets users disable or remove Local AI without affecting rule-based categorization.
 
-## 发布前检查
+## Pre-Release Checklist
 
-两个平台都必须验证：
+Both platforms must verify the following:
 
-1. 不安装 Ollama 时，规则分类和 PDF 分析仍可运行。
-2. 安装 Ollama 但未下载模型时，页面显示不可用状态且不崩溃。
-3. 模型可用时，只向本地 API 发送商户描述。
-4. 同一组已确认商户在两个平台得到相同结构的输出。
-5. Windows 和 macOS 分别执行完整测试与真实 PDF 回归测试。
+1. Rule-based categorization and PDF analysis work without Ollama installed.
+2. If Ollama is installed but the model is missing, the interface reports that Local AI is unavailable without crashing.
+3. When the model is available, only merchant descriptions are sent to the local API.
+4. The same set of confirmed merchants produces the same structured output on both platforms.
+5. The complete automated suite and real-PDF regression tests run independently on Windows and macOS.

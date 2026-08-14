@@ -1,30 +1,30 @@
-# 本地 LLM 分类设计
+# Local LLM Categorization Design
 
-## 结论
+## Decision
 
-本地 LLM 适合作为未知商户的后备分类器，不适合替代 PDF 解析、用户规则或已确认规则。推荐采用混合流程：
+A local LLM is suitable as a fallback classifier for unknown merchants. It should not replace PDF parsing, user-defined rules, or confirmed deterministic rules. The recommended hybrid flow is:
 
-当前实现使用 Ollama 的本地 HTTP API 和 `llama3.2:3b`。商户描述是英文，因此选择约 2GB 的纯文本模型，不依赖中文或视觉能力。相同 API、模型标签、提示词和 JSON Schema 可在 Windows 与 macOS 使用。
+1. User-defined rules: highest priority because they represent confirmed user preferences.
+2. Built-in keyword rules: handle stable and maintained common merchants.
+3. Local LLM: processes only merchants that the first two layers cannot identify.
+4. Manual confirmation: retains `Uncategorized` when the LLM has low confidence or the category remains ambiguous.
 
-官方依据：
+The current implementation uses Ollama's local HTTP API and `llama3.2:3b`. Merchant descriptions are in English, so the selected model is a text-only model of approximately 2 GB and does not depend on Chinese-language or vision capabilities. The same API, model tag, prompt, and JSON Schema work on Windows and macOS.
 
-- Ollama Windows 文档：https://docs.ollama.com/windows
-- Ollama macOS 文档：https://docs.ollama.com/macos
-- Structured Outputs：https://docs.ollama.com/capabilities/structured-outputs
-- llama3.2 模型页：https://ollama.com/library/llama3.2
+Official references:
 
-1. 用户自定义规则：最高优先级，代表用户确认的偏好。
-2. 内置关键词规则：处理稳定、已维护的常见商户。
-3. 本地 LLM：只处理前两层无法识别的商户。
-4. 人工确认：LLM 低置信度或类别不明确时保留 `Uncategorized`。
+- Ollama Windows documentation: https://docs.ollama.com/windows
+- Ollama macOS documentation: https://docs.ollama.com/macos
+- Structured Outputs: https://docs.ollama.com/capabilities/structured-outputs
+- llama3.2 model page: https://ollama.com/library/llama3.2
 
-## 为什么不让 LLM 解析整个账单
+## Why the LLM Does Not Parse the Entire Statement
 
-PDF 交易解析需要金额、日期和列位置准确。LLM 可能遗漏交易、改变金额或产生不存在的记录。银行专用解析器应该先生成确定性的交易数据，然后只把商户描述交给本地 LLM 分类。
+Transaction extraction requires exact amounts, dates, and column positions. An LLM may omit transactions, alter amounts, or generate nonexistent records. Bank-specific parsers should first produce deterministic transaction data. Only the merchant description should then be passed to the local LLM for categorization.
 
-## 建议输入
+## Recommended Input
 
-只传递分类所需的最少信息：
+Send only the minimum information required for classification:
 
 ```json
 {
@@ -33,11 +33,11 @@ PDF 交易解析需要金额、日期和列位置准确。LLM 可能遗漏交易
 }
 ```
 
-不要把姓名、地址、账号、完整账单文本或其他交易发送给模型。
+Do not send a name, address, account number, complete statement text, or other transactions to the model.
 
-## 建议输出
+## Required Output
 
-模型必须返回结构化 JSON：
+The model must return structured JSON:
 
 ```json
 {
@@ -47,18 +47,18 @@ PDF 交易解析需要金额、日期和列位置准确。LLM 可能遗漏交易
 }
 ```
 
-只有类别在允许列表中且置信度达到项目设定阈值时才自动采用。输出应在界面中标记为 `Local LLM`，不能伪装成银行 MCC 或已验证规则。
+A result can be applied automatically only when its category is in the allowed list and its confidence reaches the configured threshold. The interface must identify the source as `Local LLM`; it must not present the result as a bank MCC or a verified rule.
 
-模型置信度是模型自报值，并非统计校准后的真实正确率。界面默认只显示建议，不自动改写类别；用户主动开启 `Auto-apply high-confidence results` 后，阈值才参与自动采用。
+The confidence is self-reported by the model and is not a statistically calibrated probability of correctness. By default, the interface displays suggestions without changing categories automatically. The threshold controls automatic application only after the user enables `Auto-apply high-confidence results`.
 
-## 隐私与运行方式
+## Privacy and Operation
 
-- 模型必须在本机运行，默认不允许网络调用。
-- 应支持关闭 LLM，让规则系统仍可独立工作。
-- 模型名称、版本、提示词版本和置信度应记录到导出结果中。
-- 首次下载模型需要用户明确同意，因为模型文件通常较大。
-- 缓存键包含模型名和提示词版本，提示词升级后不会沿用旧判断。
+- The model must run locally, with no network classification call enabled by default.
+- The LLM must remain optional so that the rule system works independently.
+- Model name, version, prompt version, and confidence should be included in exported results.
+- The first model download requires explicit user consent because the model file is large.
+- Cache keys include the model name and prompt version so a prompt upgrade cannot reuse obsolete decisions.
 
-## 评估方法
+## Evaluation
 
-在启用自动分类前，先建立一组由用户确认的商户测试集，分别统计规则覆盖率、LLM 准确率、低置信度比例和人工纠错率。不能只用“Uncategorized 变少”作为成功标准，因为错误分类比保留未知更危险。
+Before enabling automatic categorization, create a user-confirmed merchant test set. Measure rule coverage, LLM accuracy, low-confidence rate, and manual correction rate separately. A reduction in `Uncategorized` transactions is not sufficient evidence of success because a wrong category can be more harmful than retaining an unknown result.

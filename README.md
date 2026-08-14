@@ -62,7 +62,7 @@ Original PDFs are processed locally and are not stored in the database. The data
    .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
-3. Double-click `启动信用卡账单分析器.bat`, or run:
+3. Double-click `Start Credit Card Analyzer.bat`, or run:
 
    ```powershell
    .\.venv\Scripts\python.exe -m streamlit run app.py --server.address 127.0.0.1
