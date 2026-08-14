@@ -1,0 +1,36 @@
+# Python environments and generated files
+.venv/
+.venv-macos/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Local application data and private financial files
+*.pdf
+*.csv
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+data/custom_merchant_rules.json
+data/llm_category_cache.json
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+
+# Build output, logs, and temporary files
+dist/
+tmp/
+*.log
+
+# Editor, OS, and local agent metadata
+.agents/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
